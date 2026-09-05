@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SportIA — Coach</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0f18; --panel-solid: #131926; --border: #232b3a;
+    --text: #eef1f5; --text-dim: #8791a0; --text-dimmer: #4d5566; --accent: #4fd1b0;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: radial-gradient(ellipse at top, #131a29 0%, var(--bg) 60%);
+    color: var(--text); font-family: 'Inter', -apple-system, sans-serif;
+    display: flex; flex-direction: column; height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  header {
+    padding: 18px 20px 14px; border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+  }
+  .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; color: var(--text-dim); margin: 0 0 4px; }
+  h1 { font-size: 20px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+  .server-cfg { display: flex; gap: 6px; align-items: center; }
+  .server-cfg input {
+    background: var(--panel-solid); border: 1px solid var(--border); border-radius: 8px; color: var(--text-dim);
+    padding: 7px 11px; font-family: 'Inter', sans-serif; font-size: 12px; width: 200px;
+  }
+  .server-cfg button {
+    background: var(--panel-solid); border: 1px solid var(--border); border-radius: 8px; color: var(--text-dim);
+    padding: 7px 11px; font-family: 'Inter', sans-serif; font-size: 12px; cursor: pointer;
+  }
+
+  #messages {
+    flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px;
+    max-width: 720px; width: 100%; margin: 0 auto;
+  }
+  .msg { max-width: 78%; padding: 12px 15px; border-radius: 14px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
+  .msg.user { align-self: flex-end; background: #17324a; border: 1px solid #234a68; border-bottom-right-radius: 4px; }
+  .msg.coach { align-self: flex-start; background: var(--panel-solid); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+  .msg.system { align-self: center; color: var(--text-dimmer); font-size: 12px; background: none; border: none; }
+  .msg.error { align-self: flex-start; background: #3a1620; border: 1px solid #5c2233; color: #ff9db0; }
+
+  .quick-actions {
+    display: flex; gap: 8px; padding: 12px 20px 0; max-width: 720px; width: 100%; margin: 0 auto; box-sizing: border-box; flex-wrap: wrap;
+  }
+  .quick-btn {
+    font-size: 12.5px; font-weight: 600;
+    background: var(--panel-solid); border: 1px solid var(--border); border-radius: 20px; color: var(--text-dim);
+    padding: 8px 16px; cursor: pointer; transition: all 0.15s ease;
+  }
+  .quick-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .quick-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .routine-card { align-self: flex-start; max-width: 88%; background: var(--panel-solid); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; font-size: 13.5px; }
+  .routine-card h3 { font-size: 15px; font-weight: 700; margin: 0 0 4px; color: var(--accent); }
+  .routine-card .meta { font-size: 11.5px; color: var(--text-dim); margin-bottom: 10px; }
+  .routine-card .block-title { font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-dim); margin: 10px 0 4px; font-weight: 600; }
+  .routine-card ul { margin: 0; padding-left: 18px; }
+  .routine-card li { margin-bottom: 4px; line-height: 1.4; }
+  .routine-card .coach-msg { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); font-style: italic; color: var(--text-dim); }
+
+  .program-card { align-self: flex-start; max-width: 92%; background: var(--panel-solid); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; font-size: 13px; }
+  .program-card h3 { font-size: 15px; font-weight: 700; margin: 0 0 4px; color: var(--accent); }
+  .program-card .goal { font-size: 12.5px; color: var(--text-dim); margin-bottom: 12px; }
+  .program-day { padding: 9px 0; border-bottom: 1px solid var(--border); }
+  .program-day:last-child { border-bottom: none; }
+  .program-day .day-name { font-weight: 700; font-size: 13px; }
+  .program-day .day-theme { font-size: 11.5px; color: var(--accent); margin-left: 6px; }
+  .program-day .day-items { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .program-day .day-notes { font-size: 11.5px; color: var(--text-dimmer); margin-top: 2px; font-style: italic; }
+  .program-card .nutrition-notes { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 12.5px; color: var(--text-dim); }
+
+  .empty-state {
+    margin: auto; text-align: center; color: var(--text-dimmer);
+    font-size: 13px; max-width: 320px; line-height: 1.6;
+  }
+
+  .typing { align-self: flex-start; display: flex; gap: 4px; padding: 12px 15px; }
+  .typing span { width: 6px; height: 6px; border-radius: 50%; background: var(--text-dim); animation: bounce 1.2s infinite ease-in-out; }
+  .typing span:nth-child(2) { animation-delay: 0.15s; }
+  .typing span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-4px); opacity: 1; } }
+
+  form#composer {
+    display: flex; gap: 8px; padding: 14px 20px 20px; max-width: 720px; width: 100%; margin: 0 auto; box-sizing: border-box;
+  }
+  #textInput {
+    flex: 1; background: var(--panel-solid); border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text); padding: 12px 14px; font-family: 'Inter', sans-serif; font-size: 14px; resize: none;
+  }
+  #textInput:focus { outline: none; border-color: var(--accent); }
+  button.icon-btn {
+    background: var(--panel-solid); border: 1px solid var(--border); border-radius: 10px; color: var(--text-dim);
+    width: 46px; flex-shrink: 0; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center;
+  }
+  button.icon-btn.active { color: #ff5d5d; border-color: #ff5d5d; }
+  button#sendBtn { background: var(--accent); border-color: var(--accent); color: #061512; font-weight: 700; }
+  button.icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <p class="eyebrow">SportIA · Coach</p>
+    <h1>Chat en direct</h1>
+  </div>
+  <div class="server-cfg">
+    <input id="serverUrlInput" placeholder="http://localhost:5050 ou ton URL de tunnel">
+    <button id="saveServerBtn">OK</button>
+    <button id="ttsToggle" title="Lire les réponses à voix haute">🔊 off</button>
+  </div>
+</header>
+
+<div class="quick-actions">
+  <button class="quick-btn" id="morningBtn">🌅 Routine du matin</button>
+  <button class="quick-btn" id="sessionBtn">🏋️ Générer une séance</button>
+  <button class="quick-btn" id="programBtn">🗓️ Programme de la semaine</button>
+</div>
+
+<div id="messages">
+  <div class="empty-state" id="emptyState">
+    Renseigne l'URL de ton serveur SportIA en haut à droite, puis écris ou parle à ton coach —
+    ou utilise les boutons rapides ci-dessus pour générer une routine.<br><br>
+    Il a accès à ton bilan corporel, tes figures, tes objectifs et — si tu as configuré ton profil
+    et synchronisé Health Connect — à tes besoins caloriques et macros.
+  </div>
+</div>
+
+<form id="composer">
+  <button type="button" class="icon-btn" id="micBtn" title="Parler">🎤</button>
+  <textarea id="textInput" rows="1" placeholder="Écris à ton coach…"></textarea>
+  <button type="submit" class="icon-btn" id="sendBtn">➤</button>
+</form>
+
+<script>
+  const messagesEl = document.getElementById('messages');
+  const emptyState = document.getElementById('emptyState');
+  const form = document.getElementById('composer');
+  const textInput = document.getElementById('textInput');
+  const micBtn = document.getElementById('micBtn');
+  const ttsToggle = document.getElementById('ttsToggle');
+  const serverUrlInput = document.getElementById('serverUrlInput');
+  const saveServerBtn = document.getElementById('saveServerBtn');
+  const morningBtn = document.getElementById('morningBtn');
+  const sessionBtn = document.getElementById('sessionBtn');
+  const programBtn = document.getElementById('programBtn');
+
+  let serverUrl = localStorage.getItem('sportia_server_url') || '';
+  serverUrlInput.value = serverUrl;
+  let ttsEnabled = false;
+
+  saveServerBtn.addEventListener('click', () => {
+    serverUrl = serverUrlInput.value.trim().replace(/\/$/, '');
+    localStorage.setItem('sportia_server_url', serverUrl);
+    loadHistory();
+  });
+
+  ttsToggle.addEventListener('click', () => {
+    ttsEnabled = !ttsEnabled;
+    ttsToggle.textContent = ttsEnabled ? '🔊 on' : '🔊 off';
+    ttsToggle.classList.toggle('active', ttsEnabled);
+    if (!ttsEnabled) window.speechSynthesis.cancel();
+  });
+
+  function addMessage(role, content) {
+    emptyState.style.display = 'none';
+    const div = document.createElement('div');
+    div.className = 'msg ' + role;
+    div.textContent = content;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return div;
+  }
+
+  function addTyping() {
+    const div = document.createElement('div');
+    div.className = 'typing';
+    div.id = 'typingIndicator';
+    div.innerHTML = '<span></span><span></span><span></span>';
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+  function removeTyping() {
+    document.getElementById('typingIndicator')?.remove();
+  }
+
+  function speak(text) {
+    if (!ttsEnabled) return;
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'fr-FR';
+    window.speechSynthesis.speak(utter);
+  }
+
+  function addRoutineCard(routine, kind) {
+    emptyState.style.display = 'none';
+    const card = document.createElement('div');
+    card.className = 'routine-card';
+
+    let html = `<h3>${routine.title || (kind === 'morning' ? 'Routine du matin' : 'Séance')}</h3>`;
+    html += `<div class="meta">${routine.duration_minutes ? routine.duration_minutes + ' min' : ''}</div>`;
+
+    const renderList = (label, items) => {
+      if (!items || items.length === 0) return '';
+      let out = `<div class="block-title">${label}</div><ul>`;
+      items.forEach(it => {
+        const reps = it.reps_or_duration ? ` — ${it.reps_or_duration}` : '';
+        const sets = it.sets ? `${it.sets}x` : '';
+        const skill = it.linked_skill && it.linked_skill !== 'null' ? ` (figure : ${it.linked_skill})` : '';
+        out += `<li>${sets}${it.name}${reps}${skill}${it.note ? ' — ' + it.note : ''}</li>`;
+      });
+      return out + '</ul>';
+    };
+
+    if (routine.items) html += renderList('Programme', routine.items);
+    if (routine.warmup) html += renderList('Échauffement', routine.warmup);
+    if (routine.main) html += renderList('Séance', routine.main);
+    if (routine.cooldown) html += renderList('Retour au calme', routine.cooldown);
+    if (routine.coach_message) html += `<div class="coach-msg">${routine.coach_message}</div>`;
+
+    card.innerHTML = html;
+    messagesEl.appendChild(card);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    if (routine.coach_message) speak(routine.coach_message);
+  }
+
+  async function requestRoutine(kind) {
+    if (!serverUrl) {
+      addMessage('system', "Renseigne d'abord l'URL de ton serveur en haut à droite.");
+      return;
+    }
+    const btn = kind === 'morning' ? morningBtn : sessionBtn;
+    btn.disabled = true;
+    addTyping();
+
+    let body = {};
+    let endpoint = '/routine/morning';
+    if (kind === 'session') {
+      endpoint = '/routine/session';
+      const minutes = prompt("Durée de la séance (minutes) ?", "30");
+      if (minutes === null) { removeTyping(); btn.disabled = false; return; }
+      const equipmentRaw = prompt("Matériel dispo (séparé par des virgules, ou vide) ?", "");
+      body = {
+        minutes: parseInt(minutes, 10) || 30,
+        equipment: equipmentRaw ? equipmentRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
+      };
+    }
+
+    try {
+      const res = await fetch(serverUrl + endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      removeTyping();
+      if (data.status === 'ok') {
+        addRoutineCard(data, kind);
+      } else {
+        addMessage('error', data.detail || "Erreur de génération.");
+      }
+    } catch (e) {
+      removeTyping();
+      addMessage('error', "Impossible de joindre le serveur : " + e.message);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  morningBtn.addEventListener('click', () => requestRoutine('morning'));
+  sessionBtn.addEventListener('click', () => requestRoutine('session'));
+
+  function addProgramCard(program) {
+    emptyState.style.display = 'none';
+    const card = document.createElement('div');
+    card.className = 'program-card';
+
+    let html = `<h3>Programme de la semaine</h3>`;
+    if (program.goal_summary) html += `<div class="goal">${program.goal_summary}</div>`;
+
+    (program.days || []).forEach(d => {
+      const items = [...(d.exercise_ids || []), ...(d.skill_ids || [])];
+      const itemsText = items.length ? items.join(', ') : 'Repos';
+      html += `<div class="program-day">
+        <span class="day-name">${d.day}</span><span class="day-theme">${d.theme || ''}</span>
+        <div class="day-items">${itemsText}${d.steps_target ? ' · ' + d.steps_target + ' pas' : ''}</div>
+        ${d.notes ? `<div class="day-notes">${d.notes}</div>` : ''}
+      </div>`;
+    });
+
+    if (program.nutrition_notes) html += `<div class="nutrition-notes">🍽️ ${program.nutrition_notes}</div>`;
+    if (program.coach_message) html += `<div class="coach-msg">${program.coach_message}</div>`;
+
+    card.innerHTML = html;
+    messagesEl.appendChild(card);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    if (program.coach_message) speak(program.coach_message);
+  }
+
+  async function requestProgram() {
+    if (!serverUrl) {
+      addMessage('system', "Renseigne d'abord l'URL de ton serveur en haut à droite.");
+      return;
+    }
+    const goalText = prompt("Quel est ton objectif ? (ex: perdre du gras, progresser sur le front lever...)");
+    if (!goalText) return;
+
+    addMessage('user', goalText);
+    programBtn.disabled = true;
+    addTyping();
+
+    try {
+      const res = await fetch(serverUrl + '/program/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ goal_text: goalText }),
+      });
+      const data = await res.json();
+      removeTyping();
+      if (data.status === 'ok') {
+        addProgramCard(data);
+      } else {
+        addMessage('error', data.detail || "Erreur de génération.");
+      }
+    } catch (e) {
+      removeTyping();
+      addMessage('error', "Impossible de joindre le serveur : " + e.message);
+    } finally {
+      programBtn.disabled = false;
+    }
+  }
+
+  programBtn.addEventListener('click', requestProgram);
+
+  async function loadHistory() {
+    if (!serverUrl) return;
+    try {
+      const res = await fetch(serverUrl + '/coach/history?limit=30');
+      const history = await res.json();
+      if (history.length > 0) emptyState.style.display = 'none';
+      history.forEach(m => addMessage(m.role === 'user' ? 'user' : 'coach', m.content));
+    } catch (e) {
+      addMessage('system', "Impossible de charger l'historique (vérifie l'URL du serveur).");
+    }
+  }
+
+  async function sendMessage(text) {
+    if (!text.trim()) return;
+    if (!serverUrl) {
+      addMessage('system', "Renseigne d'abord l'URL de ton serveur en haut à droite.");
+      return;
+    }
+    addMessage('user', text);
+    textInput.value = '';
+    addTyping();
+
+    try {
+      const res = await fetch(serverUrl + '/coach/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text }),
+      });
+      const data = await res.json();
+      removeTyping();
+      if (data.status === 'ok') {
+        addMessage('coach', data.reply);
+        speak(data.reply);
+      } else {
+        addMessage('error', data.detail || "Erreur du coach IA.");
+      }
+    } catch (e) {
+      removeTyping();
+      addMessage('error', "Impossible de joindre le serveur : " + e.message);
+    }
+  }
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    sendMessage(textInput.value);
+  });
+
+  textInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(textInput.value);
+    }
+  });
+
+  // --- Entrée vocale (Web Speech API, reconnaissance native du navigateur) ---
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recognition = null;
+  let listening = false;
+
+  if (SpeechRecognition) {
+    recognition = new SpeechRecognition();
+    recognition.lang = 'fr-FR';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      textInput.value = transcript;
+    };
+    recognition.onend = () => {
+      listening = false;
+      micBtn.classList.remove('active');
+    };
+    recognition.onerror = () => {
+      listening = false;
+      micBtn.classList.remove('active');
+    };
+
+    micBtn.addEventListener('click', () => {
+      if (listening) {
+        recognition.stop();
+      } else {
+        listening = true;
+        micBtn.classList.add('active');
+        recognition.start();
+      }
+    });
+  } else {
+    micBtn.disabled = true;
+    micBtn.title = "Reconnaissance vocale non supportée par ce navigateur";
+  }
+
+  loadHistory();
+</script>
+
+</body>
+</html>

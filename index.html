@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SportIA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0f18; --panel-solid: #131926; --border: #232b3a;
+    --text: #eef1f5; --text-dim: #8791a0; --text-dimmer: #4d5566; --accent: #4fd1b0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh;
+    background: radial-gradient(ellipse at top, #131a29 0%, var(--bg) 60%);
+    color: var(--text); font-family: 'Inter', -apple-system, sans-serif;
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 420px; width: 100%; }
+  .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: var(--text-dim); margin: 0 0 6px; text-align: center; }
+  h1 { font-size: 28px; font-weight: 800; margin: 0 0 30px; text-align: center; letter-spacing: -0.01em; }
+
+  .status-row { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 22px; font-size: 12.5px; color: var(--text-dim); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-dimmer); }
+  .dot.ok { background: var(--accent); }
+  .dot.fail { background: #e05353; }
+
+  .server-box { display: flex; gap: 8px; margin-bottom: 26px; }
+  .server-box input {
+    flex: 1; background: var(--panel-solid); border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text); padding: 11px 13px; font-family: 'Inter', sans-serif; font-size: 13px;
+  }
+  .server-box input:focus { outline: none; border-color: var(--accent); }
+  .server-box button {
+    background: var(--accent); border: none; border-radius: 10px; color: #061512; font-weight: 700;
+    padding: 0 18px; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 13px;
+  }
+
+  .tiles { display: flex; flex-direction: column; gap: 10px; }
+  .tile {
+    display: flex; align-items: center; gap: 14px; background: var(--panel-solid); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px 18px; text-decoration: none; color: var(--text); transition: border-color 0.15s ease, transform 0.15s ease;
+  }
+  .tile:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .tile .emoji { font-size: 22px; }
+  .tile .label { font-size: 15px; font-weight: 700; }
+  .tile .sub { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <p class="eyebrow">SportIA</p>
+  <h1>Coach personnel</h1>
+
+  <div class="status-row">
+    <span class="dot" id="statusDot"></span>
+    <span id="statusText">Serveur non vérifié</span>
+  </div>
+
+  <div class="server-box">
+    <input id="serverUrlInput" placeholder="URL du serveur (auto si Firebase configuré)">
+    <button id="saveBtn">OK</button>
+  </div>
+  <div class="server-box">
+    <input id="tokenInput" placeholder="Token d'accès (le même que sur l'app Android)" type="password">
+    <button id="saveTokenBtn">OK</button>
+  </div>
+
+  <div class="tiles">
+    <a class="tile" href="session-player.html">
+      <span class="emoji">🏋️</span>
+      <div><div class="label">Séance guidée</div><div class="sub">Échauffement chronométré, validation pas à pas, bilan de progression</div></div>
+    </a>
+    <a class="tile" href="chat-coach.html">
+      <span class="emoji">💬</span>
+      <div><div class="label">Chat coach</div><div class="sub">Discute en direct, génère une routine ou une séance</div></div>
+    </a>
+    <a class="tile" href="dashboard-corps.html">
+      <span class="emoji">🧍</span>
+      <div><div class="label">Relevé corporel</div><div class="sub">Silhouette anatomique, 24 zones musculaires</div></div>
+    </a>
+    <a class="tile" href="skills-dashboard.html">
+      <span class="emoji">🤸</span>
+      <div><div class="label">Figures</div><div class="sub">Pompes → planche, % de maîtrise, étoiles de difficulté</div></div>
+    </a>
+  </div>
+</div>
+
+<script>
+  // --- À ADAPTER : mets l'URL de ta Realtime Database Firebase ici (visible
+  // publiquement une fois sur GitHub Pages, mais elle est en lecture seule
+  // publique par design — voir firebase-rules-fitcoach.json). Laisse vide
+  // pour désactiver l'auto-connexion et entrer l'URL du serveur à la main. ---
+  const FIREBASE_DB_URL = "https://sportia-ad03a-default-rtdb.europe-west1.firebasedatabase.app";
+  const FIREBASE_NODE = "fitcoach/tunnelUrl";
+
+  const SERVER_KEY = 'sportia_server_url';
+  const TOKEN_KEY = 'sportia_api_token';
+
+  const serverInput = document.getElementById('serverUrlInput');
+  const tokenInput = document.getElementById('tokenInput');
+  const saveBtn = document.getElementById('saveBtn');
+  const saveTokenBtn = document.getElementById('saveTokenBtn');
+  const dot = document.getElementById('statusDot');
+  const statusText = document.getElementById('statusText');
+
+  serverInput.value = localStorage.getItem(SERVER_KEY) || '';
+  tokenInput.value = localStorage.getItem(TOKEN_KEY) || '';
+
+  async function fetchServerUrlFromFirebase() {
+    if (!FIREBASE_DB_URL) return null;
+    try {
+      const res = await fetch(FIREBASE_DB_URL.replace(/\/$/, '') + '/' + FIREBASE_NODE + '.json', { signal: AbortSignal.timeout(4000) });
+      if (!res.ok) return null;
+      const url = await res.json();
+      return typeof url === 'string' ? url : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async function checkServer(url) {
+    const token = localStorage.getItem(TOKEN_KEY) || '';
+    if (!url) { dot.className = 'dot'; statusText.textContent = 'Aucun serveur configuré'; return; }
+    if (!token) { dot.className = 'dot'; statusText.textContent = 'Renseigne aussi le token ci-dessous'; return; }
+    statusText.textContent = 'Vérification...';
+    try {
+      const res = await fetch(url.replace(/\/$/, '') + '/activities', {
+        signal: AbortSignal.timeout(4000),
+        headers: { 'X-Health-Token': token },
+      });
+      if (res.ok) {
+        dot.className = 'dot ok';
+        statusText.textContent = 'Serveur joignable';
+      } else if (res.status === 401) {
+        dot.className = 'dot fail';
+        statusText.textContent = 'Token incorrect';
+      } else {
+        dot.className = 'dot fail';
+        statusText.textContent = `Erreur HTTP ${res.status}`;
+      }
+    } catch (e) {
+      dot.className = 'dot fail';
+      statusText.textContent = 'Serveur injoignable';
+    }
+  }
+
+  saveBtn.addEventListener('click', () => {
+    const url = serverInput.value.trim().replace(/\/$/, '');
+    localStorage.setItem(SERVER_KEY, url);
+    checkServer(url);
+  });
+
+  saveTokenBtn.addEventListener('click', () => {
+    localStorage.setItem(TOKEN_KEY, tokenInput.value.trim());
+    checkServer(serverInput.value.trim());
+  });
+
+  (async () => {
+    // Auto-connexion : si aucune URL n'est encore enregistrée, on tente de la
+    // récupérer automatiquement via Firebase (même mécanisme que l'app Android).
+    if (!serverInput.value && FIREBASE_DB_URL) {
+      statusText.textContent = 'Recherche du serveur...';
+      const url = await fetchServerUrlFromFirebase();
+      if (url) {
+        serverInput.value = url;
+        localStorage.setItem(SERVER_KEY, url);
+      }
+    }
+    checkServer(serverInput.value);
+  })();
+</script>
+
+</body>
+</html>
