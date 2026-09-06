@@ -152,6 +152,8 @@
   const programBtn = document.getElementById('programBtn');
 
   let serverUrl = localStorage.getItem('sportia_server_url') || '';
+  const apiToken = localStorage.getItem('sportia_api_token') || '';
+  function authHeaders(extra) { return Object.assign({ 'X-Health-Token': apiToken }, extra || {}); }
   serverUrlInput.value = serverUrl;
   let ttsEnabled = false;
 
@@ -255,7 +257,7 @@
     try {
       const res = await fetch(serverUrl + endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(body),
       });
       const data = await res.json();
@@ -318,7 +320,7 @@
     try {
       const res = await fetch(serverUrl + '/program/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ goal_text: goalText }),
       });
       const data = await res.json();
@@ -341,7 +343,7 @@
   async function loadHistory() {
     if (!serverUrl) return;
     try {
-      const res = await fetch(serverUrl + '/coach/history?limit=30');
+      const res = await fetch(serverUrl + '/coach/history?limit=30', { headers: authHeaders() });
       const history = await res.json();
       if (history.length > 0) emptyState.style.display = 'none';
       history.forEach(m => addMessage(m.role === 'user' ? 'user' : 'coach', m.content));
@@ -363,7 +365,7 @@
     try {
       const res = await fetch(serverUrl + '/coach/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ message: text }),
       });
       const data = await res.json();
